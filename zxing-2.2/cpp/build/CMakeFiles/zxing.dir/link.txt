@@ -1,0 +1,1 @@
+/usr/bin/c++    -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/zxing.dir/cli/src/ImageReaderSource.cpp.o CMakeFiles/zxing.dir/cli/src/jpgd.cpp.o CMakeFiles/zxing.dir/cli/src/lodepng.cpp.o CMakeFiles/zxing.dir/cli/src/main.cpp.o  -o zxing  libzxing.a /usr/lib/libiconv.dylib 

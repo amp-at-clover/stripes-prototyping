@@ -9,8 +9,16 @@ for i =1:length(fileList)
     I = imread( sprintf('~/data/DCIM/%s',fileList(i).name) );
     figure; subplot(2,2,1),imshow(I),title(sprintf('Original Image: %s',fileList(i).name));
     Ihsv = rgb2hsv( I ); Ihsv=Ihsv(:,:,3);
-    subplot(2,2,2), imshow(Ihsv), title('HSV image');
-    Icanny = edge( Ihsv, 'canny', Thresh );
+
+    IhsvEq = Ihsv;
+    %IhsvEq = adapthisteq(Ihsv,'clipLimit',0.1,'Distribution','rayleigh');
+    %IhsvEq = histeq(Ihsv);
+    
+    subplot(2,2,2), imshow(IhsvEq), title('HSV Equalized image');
+    
+    
+    Iedge = edge( IhsvEq, 'canny', Thresh );
+    %Iedge = edge( IhsvEq, 'sobel', Thresh );
 
     % Setup parameters for the Gabor test
     lambda  = 3;
@@ -18,7 +26,7 @@ for i =1:length(fileList)
     psi     = [0 pi/2];
     gamma   = 0.5;
     bw      = 1;
-    N       = 10;
+    N       = 1;
     % Test it
-    gabor_test( Icanny, lambda, theta, psi, gamma, bw, N );
+    gabor_test( Iedge, lambda, theta, psi, gamma, bw, N );
 end

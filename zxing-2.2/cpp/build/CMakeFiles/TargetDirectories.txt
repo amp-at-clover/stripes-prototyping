@@ -1,0 +1,2 @@
+/Users/arvind/git/stripes-prototyping/zxing-2.2/cpp/build/CMakeFiles/libzxing.dir
+/Users/arvind/git/stripes-prototyping/zxing-2.2/cpp/build/CMakeFiles/zxing.dir
