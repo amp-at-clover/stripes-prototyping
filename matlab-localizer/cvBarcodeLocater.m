@@ -1,4 +1,4 @@
-function [lines, binranges, bincounts] = cvBarcodeLocater( fileName )
+function cvBarcodeLocater( fileName )
 % Barcode localizer using OpenCV instead of Matlab's image processing
 % toolbox.
 % 
@@ -8,28 +8,29 @@ I = imread( fileName );
 
 Igscale = cv.cvtColor( I, 'RGB2GRAY' );
 
+Iequalized = cv.equalizeHist( Igscale );
+
 CannyThresh = 120;
-ApertureSize = 5;
+ApertureSize = 6;
 L2Gradient = true;
-Icanny  = cv.Canny( Igscale, CannyThresh );
+Icanny1  = cv.Canny( Igscale, CannyThresh );
+Icanny2 = cv.Canny( Iequalized, CannyThresh );
 
-figure,subplot(2,2,1),imshow(I),title('Original');
-subplot(2,2,2),imshow(Igscale),title('RGB2GRAY');
-subplot(2,2,3),imshow(Icanny),title('Canny');
-lines = cv.HoughLines( Icanny, 'Rho',1, 'Threshold', 80 );
+
+figure,subplot(2,3,1),imshow(I),title('Original');
+subplot(2,3,2),imshow(Igscale),title('RGB2GRAY');
+subplot(2,3,3),imshow(Iequalized),title('Equalized');
+subplot(2,3,4),imshow(Icanny1),title('Canny-NE');
+subplot(2,3,5),imshow(Icanny2),title('Canny-EQ');
+lines1 = cv.HoughLines( Icanny1, 'Rho',1, 'Threshold', 150 );
+lines2 = cv.HoughLines( Icanny2, 'Rho',1, 'Threshold', 150 );
+
 %drawLines( lines );
-
+rotAng1 = GetRotationAngle( lines1 );
+rotAng2 = GetRotationAngle( lines2 );
     
-linesInMat = cell2mat( lines ); % Convert from Cell array to Matrix
-Rho = linesInMat( 1:2:end );
-Theta = linesInMat( 2:2:end );
-% Compute the most likely rotations for these candidate lines
-binranges = [ 0:0.05:pi ];
-bincounts = histc( Theta, binranges );
-subplot(2,2,2),bar( binranges, bincounts, 'histc' ), xlim( [ 0, pi ]),title('Histogram');
+Irotated1 = imrotate( Igscale, 180/pi * rotAng1 , 'bilinear', 'crop' );
+subplot( 2, 3, 6), imshow( Irotated1 );
 
-% Find the angle with the maximum lines
-[mCount, angInd] = max( bincounts );
-disp( binranges( angInd ) );
-Irotated = imrotate( Icanny, -180/pi * binranges( angInd ), 'bilinear', 'crop' );
-subplot( 2, 2, 4), imshow( Irotated );
+Irotated2 = imrotate( Iequalized, 180/pi *rotAng2, 'bilinear','crop' );
+subplot( 2, 3, 1), imshow( Irotated2 );

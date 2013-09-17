@@ -3,6 +3,7 @@ close all; clear all;
 
 fileList = dir('~/data/DCIM/*.jpg');
 
+%for i=2:2
 for i=1:length( fileList )
-    [lines,binranges,bincounts] = cvBarcodeLocater( sprintf('~/data/DCIM/%s',fileList(i).name) );
+    cvBarcodeLocater( sprintf('~/data/DCIM/%s',fileList(i).name) );
 end
