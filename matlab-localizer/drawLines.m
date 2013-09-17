@@ -8,7 +8,7 @@ function drawLines( lines )
         y1 = lines{i}(2); y2 = lines{i}(4);       
         
         if sqrt( double((x1-x2)^2 + (y1-y2)^2) )> lenThreshold
-            plot( [x1 x2], [y1 y2], 'y-' );
+            plot( [x1 x2], [y1 y2], 'r-','LineWidth',2 );
         end
     end
     hold off;

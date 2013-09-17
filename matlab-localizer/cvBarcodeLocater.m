@@ -10,27 +10,59 @@ Igscale = cv.cvtColor( I, 'RGB2GRAY' );
 
 Iequalized = cv.equalizeHist( Igscale );
 
-CannyThresh = 120;
-ApertureSize = 6;
-L2Gradient = true;
-Icanny1  = cv.Canny( Igscale, CannyThresh );
-Icanny2 = cv.Canny( Iequalized, CannyThresh );
+I1 = 2.5; I2 = 0.5;
+Iequalized = uint8((I1 * double(Igscale) + I2 * double (Iequalized))/(I1+I2));
 
+CannyThresh = 60;
+ApertureSize = 3;
+L2Gradient = true;
+
+Icanny1  = cv.Canny( Igscale, CannyThresh, 'ApertureSize', ApertureSize,...
+    'L2Gradient', L2Gradient );
+Icanny2 = cv.Canny( Iequalized, 1.5*CannyThresh,'ApertureSize', ApertureSize,...
+    'L2Gradient', L2Gradient );
 
 figure,subplot(2,3,1),imshow(I),title('Original');
 subplot(2,3,2),imshow(Igscale),title('RGB2GRAY');
 subplot(2,3,3),imshow(Iequalized),title('Equalized');
-subplot(2,3,4),imshow(Icanny1),title('Canny-NE');
-subplot(2,3,5),imshow(Icanny2),title('Canny-EQ');
-lines1 = cv.HoughLines( Icanny1, 'Rho',1, 'Threshold', 150 );
-lines2 = cv.HoughLines( Icanny2, 'Rho',1, 'Threshold', 150 );
 
-%drawLines( lines );
-rotAng1 = GetRotationAngle( lines1 );
-rotAng2 = GetRotationAngle( lines2 );
+useHoughLinesP = 1;
+
+HoughThreshold = 100;
+HoughRho =1.5;
+HoughMaxLineGap = 2;
+HoughMinLineLength = 40;
+
+if useHoughLinesP % Advanced probabilistic Hough (line) space search
+    lines1 = cv.HoughLinesP( Icanny1, 'Rho',HoughRho,'Threshold',HoughThreshold, ...
+        'MinLineLength', HoughMinLineLength, ...
+        'MaxLineGap',HoughMaxLineGap );
+    lines2 = cv.HoughLinesP( Icanny2, 'Rho',HoughRho,'Threshold',HoughThreshold, ...
+        'MinLineLength', HoughMinLineLength, ...
+        'MaxLineGap',HoughMaxLineGap );
+    rotAng1 = GetRotationAngleP( lines1 );
+    rotAng2 = GetRotationAngleP( lines2 );
     
-Irotated1 = imrotate( Igscale, 180/pi * rotAng1 , 'bilinear', 'crop' );
-subplot( 2, 3, 6), imshow( Irotated1 );
+    Irotated1 = imrotate( Igscale, 180/pi * rotAng1 , 'bilinear', 'crop' );
+    subplot( 2, 3, 6), imshow( Irotated1 );
+    
+    Irotated2 = imrotate( Iequalized, 180/pi *rotAng2, 'bilinear','crop' );
+    subplot( 2, 3, 1), imshow( Irotated2 );
+      
+else % Generalized Hough line space search    
+    lines1 = cv.HoughLines( Icanny1, 'Rho',HoughRho, 'Threshold', HoughThreshold );
+    lines2 = cv.HoughLines( Icanny2, 'Rho',HoughRho, 'Threshold', HoughThreshold );
+    rotAng1 = GetRotationAngle( lines1 );
+    rotAng2 = GetRotationAngle( lines2 );
+    
+    Irotated1 = imrotate( Igscale, 180/pi * rotAng1 , 'bilinear', 'crop' );
+    subplot( 2, 3, 6), imshow( Irotated1 );
 
-Irotated2 = imrotate( Iequalized, 180/pi *rotAng2, 'bilinear','crop' );
-subplot( 2, 3, 1), imshow( Irotated2 );
+    Irotated2 = imrotate( Iequalized, 180/pi *rotAng2, 'bilinear','crop' );
+    subplot( 2, 3, 1), imshow( Irotated2 );
+end
+    
+subplot(2,3,4),imshow(Icanny1),title('Canny-NE');
+if useHoughLinesP,  drawLines( lines1 ); end
+subplot(2,3,5),imshow(Icanny2),title('Canny-EQ');
+if useHoughLinesP, drawLines( lines2 ); end
