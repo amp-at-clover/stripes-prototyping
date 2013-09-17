@@ -13,7 +13,7 @@ Iequalized = cv.equalizeHist( Igscale );
 I1 = 2.5; I2 = 0.5;
 Iequalized = uint8((I1 * double(Igscale) + I2 * double (Iequalized))/(I1+I2));
 
-CannyThresh = 60;
+CannyThresh = 50;
 ApertureSize = 3;
 L2Gradient = true;
 
@@ -28,10 +28,10 @@ subplot(2,3,3),imshow(Iequalized),title('Equalized');
 
 useHoughLinesP = 1;
 
-HoughThreshold = 100;
+HoughThreshold = 50;
 HoughRho =1.5;
-HoughMaxLineGap = 2;
-HoughMinLineLength = 40;
+HoughMaxLineGap = 3;
+HoughMinLineLength = 50;
 
 if useHoughLinesP % Advanced probabilistic Hough (line) space search
     lines1 = cv.HoughLinesP( Icanny1, 'Rho',HoughRho,'Threshold',HoughThreshold, ...
@@ -40,8 +40,8 @@ if useHoughLinesP % Advanced probabilistic Hough (line) space search
     lines2 = cv.HoughLinesP( Icanny2, 'Rho',HoughRho,'Threshold',HoughThreshold, ...
         'MinLineLength', HoughMinLineLength, ...
         'MaxLineGap',HoughMaxLineGap );
-    rotAng1 = GetRotationAngleP( lines1 );
-    rotAng2 = GetRotationAngleP( lines2 );
+    [ rotAng1, Theta1, LineL1 ] = GetRotationAngleP( lines1 );
+    [ rotAng2, Theta2, LineL2 ] = GetRotationAngleP( lines2 );
     
     Irotated1 = imrotate( Igscale, 180/pi * rotAng1 , 'bilinear', 'crop' );
     subplot( 2, 3, 6), imshow( Irotated1 );
