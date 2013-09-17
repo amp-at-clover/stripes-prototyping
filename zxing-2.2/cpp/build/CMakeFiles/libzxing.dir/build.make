@@ -26,10 +26,10 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = "/Applications/CMake 2.8-11.app/Contents/bin/cmake"
+CMAKE_COMMAND = /usr/local/Cellar/cmake/2.8.11.2/bin/cmake
 
 # The command to remove a file.
-RM = "/Applications/CMake 2.8-11.app/Contents/bin/cmake" -E remove -f
+RM = /usr/local/Cellar/cmake/2.8.11.2/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
