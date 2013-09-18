@@ -25,7 +25,7 @@ Icanny2 = cv.Canny( Iequalized, 1.5*CannyThresh,'ApertureSize', ApertureSize,...
 figure,subplot(2,3,1),imshow(I),title('Original');
 subplot(2,3,2),imshow(Igscale),title('RGB2GRAY');
 subplot(2,3,3),imshow(Iequalized),title('Equalized');
-KMeansLocator( Iequalized );
+KMeansLocator( Icanny2 );
 
 useHoughLinesP = 1;
 

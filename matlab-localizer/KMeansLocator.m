@@ -1,7 +1,7 @@
 function KMeansLocator( I )
     [ y, x, val ] = find( I>0 );
     
-    k = 4;
+    k = 3;
     
     
     P = [ x'; y' ]';
@@ -14,8 +14,16 @@ function KMeansLocator( I )
     
     hold on;
     for i=1:k
-        pcolor( x(labels==i-1),y(labels==i-1), ones(size(labels))*i*10 );        
+        I2( sub2ind( size(I2), y(labels==i-1), x(labels==i-1)) ) = mod(i*30,256);
     end
+    
+    image( I2 );
+    colormap( hot(256) );
+    for i=1:k
+        plot( centers(i,1), centers(i,2),'r*','MarkerSize',14, ...
+            'MarkerFaceColor','g');
+    end
+    
     hold off;
     
 end

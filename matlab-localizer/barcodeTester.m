@@ -1,5 +1,6 @@
 % Test files from the directory with barcodes
-close all; clear all;
+close all; 
+%clear all; % This can delete all breakpoints. - Beware!!!
 
 fileList = dir('~/data/DCIM/*.jpg');
 
