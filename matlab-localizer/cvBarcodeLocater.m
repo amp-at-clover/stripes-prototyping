@@ -10,7 +10,7 @@ Igscale = cv.cvtColor( I, 'RGB2GRAY' );
 
 Iequalized = cv.equalizeHist( Igscale );
 
-I1 = 2.5; I2 = 0.5;
+I1 = 10; I2 = 5;
 Iequalized = uint8((I1 * double(Igscale) + I2 * double (Iequalized))/(I1+I2));
 
 CannyThresh = 50;
@@ -25,13 +25,14 @@ Icanny2 = cv.Canny( Iequalized, 1.5*CannyThresh,'ApertureSize', ApertureSize,...
 figure,subplot(2,3,1),imshow(I),title('Original');
 subplot(2,3,2),imshow(Igscale),title('RGB2GRAY');
 subplot(2,3,3),imshow(Iequalized),title('Equalized');
+KMeansLocator( Iequalized );
 
 useHoughLinesP = 1;
 
-HoughThreshold = 50;
+HoughThreshold = 45;
 HoughRho =1.5;
 HoughMaxLineGap = 3;
-HoughMinLineLength = 50;
+HoughMinLineLength = 40;
 
 if useHoughLinesP % Advanced probabilistic Hough (line) space search
     lines1 = cv.HoughLinesP( Icanny1, 'Rho',HoughRho,'Threshold',HoughThreshold, ...
