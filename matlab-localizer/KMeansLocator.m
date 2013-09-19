@@ -1,5 +1,5 @@
 function KMeansLocator( I )
-    [ y, x, val ] = find( I>0 );
+    %[ y, x, val ] = find( I>0 );
     
     k = 3;
     
@@ -19,6 +19,9 @@ function KMeansLocator( I )
     
     image( I2 );
     colormap( hot(256) );
+    ax = gca;
+    linkaxes( ax, 'xy' );
+    axis( ax, 'image' );
     for i=1:k
         plot( centers(i,1), centers(i,2),'r*','MarkerSize',14, ...
             'MarkerFaceColor','g');
