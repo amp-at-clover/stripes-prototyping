@@ -21,5 +21,15 @@ function [angle,center] = GaborLocator( Img )
     % The angle should be pretty easy to find now:
     angle = Ind*ThetaRes;
     bestResponse = gaborAtTheta( IgPyr{1}, angle );
-    imshow( real(bestResponse./max(bestResponse(:))) );        
+    
+    bb = max( bestResponse(:) );
+    
+    bestResponse = real(bestResponse./bb);
+
+    Out = zeros( size(bestResponse) );
+    % Now let us threshold the best response.
+    Ind = find( bestResponse > 0.01*bb );
+    Out( Ind ) = 255;
+    
+    imshow( Out );    
 end
