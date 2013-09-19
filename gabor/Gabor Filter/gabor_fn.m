@@ -24,4 +24,4 @@ x_theta=x*cos(theta)+y*sin(theta);
 y_theta=-x*sin(theta)+y*cos(theta);
  
 gb=exp(-0.5*(x_theta.^2/sigma_x^2+y_theta.^2/sigma_y^2)).*cos(2*pi/lambda*x_theta+psi);
-imshow(gb/2+0.5);
+%imshow(gb/2+0.5);

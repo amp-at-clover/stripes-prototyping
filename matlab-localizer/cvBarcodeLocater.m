@@ -5,6 +5,7 @@ function cvBarcodeLocater( fileName )
 % Author: Arvind A. de Menezes Pereira
 %
 I = imread( fileName );
+disp( fileName );
 
 Igscale = cv.cvtColor( I, 'RGB2GRAY' );
 
@@ -25,7 +26,7 @@ Icanny2 = cv.Canny( Iequalized, 1.5*CannyThresh,'ApertureSize', ApertureSize,...
 figure,subplot(2,3,1),imshow(I),title('Original');
 subplot(2,3,2),imshow(Igscale),title('RGB2GRAY');
 subplot(2,3,3),imshow(Iequalized),title('Equalized');
-KMeansLocator( Icanny2 );
+%KMeansLocator( Icanny2 );
 
 useHoughLinesP = 1;
 
@@ -47,9 +48,13 @@ if useHoughLinesP % Advanced probabilistic Hough (line) space search
     Irotated1 = imrotate( Igscale, 180/pi * rotAng1 , 'bilinear', 'crop' );
     subplot( 2, 3, 6), imshow( Irotated1 );
     
-    Irotated2 = imrotate( Iequalized, 180/pi *rotAng2, 'bilinear','crop' );
-    subplot( 2, 3, 1), imshow( Irotated2 );
-      
+    %Irotated2 = imrotate( Iequalized, 180/pi *rotAng2, 'bilinear','crop' );
+    %subplot( 2, 3, 1), imshow( Irotated2 );
+    
+    [angle,center] = GaborLocator( Iequalized );
+    Irotated2 = imrotate( Iequalized, 180/pi * angle, 'bilinear', 'crop' );
+    subplot( 2, 3, 1 ), imshow( Irotated2 );
+    
 else % Generalized Hough line space search    
     lines1 = cv.HoughLines( Icanny1, 'Rho',HoughRho, 'Threshold', HoughThreshold );
     lines2 = cv.HoughLines( Icanny2, 'Rho',HoughRho, 'Threshold', HoughThreshold );

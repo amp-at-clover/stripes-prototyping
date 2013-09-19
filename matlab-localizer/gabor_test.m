@@ -1,4 +1,4 @@
-function gabor_test( image, varargin )
+function img_out = gabor_test( image, varargin )
     % gabor_test( image, varargin ):
     % A function that takes as input a matrix specifying a 2D image
     % and applies a 2D Gabor wavelet filter to this function.
@@ -72,11 +72,12 @@ function gabor_test( image, varargin )
         theta = theta + 2*pi/N;
         % next orientation
     end
-    subplot( 2,2,3 ),imshow(img_in);
-    title('input image');
-    img_out_disp = sum(abs(img_out).^2, 3).^0.5;
-    % default superposition method, L2-norm
-    img_out_disp = img_out_disp./max(img_out_disp(:));
-    % normalize
-    subplot( 2,2,4 ),imshow(img_out_disp);
-    title('gabor output, L-2 super-imposed, normalized');
+    
+%     subplot( 2,2,3 ),imshow(img_in);
+%     title('input image');
+%     img_out_disp = sum(abs(img_out).^2, 3).^0.5;
+%     % default superposition method, L2-norm
+%     img_out_disp = img_out_disp./max(img_out_disp(:));
+%     % normalize
+%     subplot( 2,2,4 ),imshow(img_out_disp);
+%     title('gabor output, L-2 super-imposed, normalized');
