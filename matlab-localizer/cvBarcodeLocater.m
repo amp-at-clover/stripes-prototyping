@@ -1,4 +1,5 @@
 function cvBarcodeLocater( fileName )
+%
 % Barcode localizer using OpenCV instead of Matlab's image processing
 % toolbox.
 % 
@@ -51,10 +52,16 @@ if useHoughLinesP % Advanced probabilistic Hough (line) space search
     %Irotated2 = imrotate( Iequalized, 180/pi *rotAng2, 'bilinear','crop' );
     %subplot( 2, 3, 1), imshow( Irotated2 );
     
-    [angle,center] = GaborLocator( Iequalized );
-    Irotated2 = imrotate( Iequalized, 180/pi * angle, 'bilinear', 'crop' );
-    subplot( 2, 3, 1 ), imshow( Irotated2 );
-    
+    [angle,ImgRotated, foundB,w1,w2,h1,h2 ] = GaborLocator( Iequalized );
+    subplot( 2, 3, 1 ), imshow( ImgRotated );
+    if foundB
+        hold on;
+        line([w1 w1],[h1 h2])
+        line([w2 w2],[h1 h2])
+        line([w1 w2],[h1 h1])
+        line([w1 w2],[h2 h2])
+        hold off;
+    end
 else % Generalized Hough line space search    
     lines1 = cv.HoughLines( Icanny1, 'Rho',HoughRho, 'Threshold', HoughThreshold );
     lines2 = cv.HoughLines( Icanny2, 'Rho',HoughRho, 'Threshold', HoughThreshold );
