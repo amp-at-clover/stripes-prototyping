@@ -3,16 +3,21 @@ function [angle,ImgRotated, foundB, w1,w2,h1,h2] = GaborLocator( Img )
     angle =0;
     
     % First do a search through the image with Gabor
-    N = 90;
+    N = 180;
     ThetaRes = pi/N;
     
     k = 2;
+    
+    thresh = 0.2;
     
     IgPyr = cv.buildPyramid( Img, 'MaxLevel', k+1 );
     Responses = zeros(1,N);
     i=1;
     for theta = 0:ThetaRes:pi
-       Igabor = gaborAtTheta( IgPyr{ k } , theta );
+       Igabor = GaborAtTheta2( IgPyr{ k } , theta );
+       % Now let us threshold the best response.
+       %Ind = find( Igabor > thresh );
+       %Igabor( Ind ) = 255;
        Responses( i ) = sum( Igabor(:) );
        i=i+1;
     end
@@ -20,20 +25,18 @@ function [angle,ImgRotated, foundB, w1,w2,h1,h2] = GaborLocator( Img )
     
     % The angle should be pretty easy to find now:
     angle = Ind*ThetaRes;
-    bestResponse = gaborAtTheta( IgPyr{1}, angle );
+    bestResponse = GaborAtTheta2( IgPyr{1}, angle );
     
     bb = max( bestResponse(:) );
     
     bestResponse = real(bestResponse./bb);
-
+    
     Out = zeros( size(bestResponse) );
-    % Now let us threshold the best response.
-    Ind = find( bestResponse > 0.01*bb );
+    Ind = find( bestResponse > thresh );
     Out( Ind ) = 255;
     
     imshow( Out );
     ImgRotated = imrotate( Img, 180/pi * angle, 'bilinear', 'crop' );
-    
     OutRotated = imrotate( Out, 180/pi * angle, 'bilinear', 'crop' );
     
     %gabResp = gaborAtTheta( ImgRotated, 0 );
