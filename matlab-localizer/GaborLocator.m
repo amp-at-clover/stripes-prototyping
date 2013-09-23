@@ -12,7 +12,7 @@ function [angle,ImgRotated, foundB, w1,w2,h1,h2] = GaborLocator( Img )
     IgPyr = cv.buildPyramid( Img, 'MaxLevel', k+1 );
     Responses = zeros(1,N);
     i=1;
-    k =1;
+    %k =1;
     for theta = 0:ThetaRes:pi
        Igabor = GaborAtTheta2( IgPyr{ k } , theta );
        % Now let us threshold the best response.
@@ -30,10 +30,13 @@ function [angle,ImgRotated, foundB, w1,w2,h1,h2] = GaborLocator( Img )
     bb = max( bestResponse(:) );
     
     bestResponse = real(bestResponse./bb);
+    Out = cv.Sobel( bestResponse );
     
+    Ind = find( Out > thresh );
     Out = zeros( size(bestResponse) );
-    Ind = find( bestResponse > thresh );
     Out( Ind ) = 255;
+    
+    % Now run a sobel mask on this image.
     
     imshow( Out );
     ImgRotated = imrotate( Img, 180/pi * angle, 'bilinear', 'crop' );
@@ -56,7 +59,4 @@ function [angle,ImgRotated, foundB, w1,w2,h1,h2] = GaborLocator( Img )
         w1 = w1*scaleFactor;
         w2 = w2*scaleFactor;
     end
-    
-    
-    
 end
