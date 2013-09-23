@@ -62,6 +62,8 @@ if useHoughLinesP % Advanced probabilistic Hough (line) space search
         line([w1 w2],[h2 h2])
         hold off;
     end
+    title( sprintf('Rotated through Angle = %.1f',angle * 180/pi ) );
+    
 else % Generalized Hough line space search    
     lines1 = cv.HoughLines( Icanny1, 'Rho',HoughRho, 'Threshold', HoughThreshold );
     lines2 = cv.HoughLines( Icanny2, 'Rho',HoughRho, 'Threshold', HoughThreshold );
