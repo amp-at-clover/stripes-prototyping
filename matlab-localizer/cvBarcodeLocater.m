@@ -10,10 +10,24 @@ disp( fileName );
 
 Igscale = cv.cvtColor( I, 'RGB2GRAY' );
 
-Iequalized = cv.equalizeHist( Igscale );
 
-I1 = 10; I2 = 5;
-Iequalized = uint8((I1 * double(Igscale) + I2 * double (Iequalized))/(I1+I2));
+Isharpened = Igscale - cv.Laplacian( Igscale, 'Scale',4 );
+
+% Sharpen the image further with the sharpen mask
+sharpMask = [ 0 -1 0 ; -1 5 -1 ; 0 -1 0 ];
+Isharpened = cv.filter2D( Igscale, sharpMask );
+
+
+%IgscaleBlurred = cv.GaussianBlur( Igscale, 'KSize',[ 3 3 ] );
+% CV - addWeighted
+%Iweighted = (1.5*double(Igscale) - 0.5 * double(IgscaleBlurred));
+
+%Iweighted = uint8(Iweighted);
+Iweighted = Isharpened;
+Iequalized = Iweighted;
+%Iequalized = cv.equalizeHist( Iweighted );
+%I1 = 10; I2 = 4;
+%Iequalized = uint8((I1 * double(Igscale) + I2 * double (Iequalized))/(I1+I2));
 
 CannyThresh = 50;
 ApertureSize = 3;

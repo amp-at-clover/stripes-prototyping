@@ -3,7 +3,7 @@ function [angle,ImgRotated, foundB, w1,w2,h1,h2] = GaborLocator( Img )
     angle =0;
     
     % First do a search through the image with Gabor
-    N = 90;
+    N = 180;
     ThetaRes = pi/N;
     
     k = 3;
