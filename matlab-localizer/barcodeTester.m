@@ -2,9 +2,13 @@
 close all; 
 %clear all; % This can delete all breakpoints. - Beware!!!
 
-fileList = dir('~/data/DCIM/*.jpg');
+%dataDir = '~/data/DCIM';            % - the original test set.
+dataDir = '~/data/DCIM/new/AllFail';
 
-for i=12:14
+fileList = dir(sprintf('%s/*.jpg', dataDir) ); % - the BAD guys!!!
+
+
+for i=11:11
 %for i=1:length( fileList )
-    cvBarcodeLocater( sprintf('~/data/DCIM/%s',fileList(i).name) );
+    cvBarcodeLocater( sprintf('%s/%s',dataDir,fileList(i).name) );
 end

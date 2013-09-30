@@ -10,24 +10,34 @@ disp( fileName );
 
 Igscale = cv.cvtColor( I, 'RGB2GRAY' );
 
+%IgscaleFiltered = cv.medianBlur( Igscale );
+Igblurred = cv.GaussianBlur( Igscale, 'KSize', [ 3 3 ] );
+%Isharpened = cv.ampSuperSharpen( Igscale, 'Scale', 4 ); %cv.Laplacian( Igscale, 'Scale',4 );
+Isharpened = cv.ampSuperSharpen( Igblurred, 'Scale', 16 ); %cv.Laplacian( Igscale, 'Scale',4 );
+Iequalized = cv.equalizeHist( Isharpened );
+Iequalized = cv.GaussianBlur( Iequalized, 'KSize', [ 3 3 ] );
+I1 = 2.5; I2 = 1.5;
+Iequalized = uint8((I1 * double(Iequalized) + I2 * double (Igblurred))/(I1+I2));
+%Iequalized = cv.medianBlur( Iequalized );
 
-Isharpened = Igscale - cv.Laplacian( Igscale, 'Scale',4 );
 
 % Sharpen the image further with the sharpen mask
-sharpMask = [ 0 -1 0 ; -1 5 -1 ; 0 -1 0 ];
-Isharpened = cv.filter2D( Igscale, sharpMask );
+%sharpMask = [ 0 -1 0 ; -1 5 -1 ; 0 -1 0 ];
+%Isharpened = cv.filter2D( Igscale, sharpMask );
 
 
-%IgscaleBlurred = cv.GaussianBlur( Igscale, 'KSize',[ 3 3 ] );
-% CV - addWeighted
-%Iweighted = (1.5*double(Igscale) - 0.5 * double(IgscaleBlurred));
-
-%Iweighted = uint8(Iweighted);
-Iweighted = Isharpened;
-Iequalized = Iweighted;
-%Iequalized = cv.equalizeHist( Iweighted );
-%I1 = 10; I2 = 4;
-%Iequalized = uint8((I1 * double(Igscale) + I2 * double (Iequalized))/(I1+I2));
+% IgscaleBlurred = cv.GaussianBlur( Isharpened, 'KSize',[ 3 3 ] );
+% % CV - addWeighted
+% %Iweighted = (1.5*double(Igscale) - 0.5 * double(IgscaleBlurred));
+% 
+% %Iweighted = Isharpened; %(1.5*double(Igscale) - 0.5 * double(IgscaleBlurred));
+% 
+% %Iweighted = uint8(Iweighted);
+% %Iweighted = Isharpened.*0.5+IgscaleBlurred.*0.5;
+% %Iequalized = IgscaleBlurred;
+% Iequalized = cv.equalizeHist( IgscaleBlurred );
+% %I1 = 10; I2 = 4;
+% %Iequalized = uint8((I1 * double(Igscale) + I2 * double (Iequalized))/(I1+I2));
 
 CannyThresh = 50;
 ApertureSize = 3;
@@ -39,7 +49,7 @@ Icanny2 = cv.Canny( Iequalized, 1.5*CannyThresh,'ApertureSize', ApertureSize,...
     'L2Gradient', L2Gradient );
 
 figure,subplot(2,3,1),imshow(I),title('Original');
-subplot(2,3,2),imshow(Igscale),title('RGB2GRAY');
+subplot(2,3,2),imshow(Igscale),title('RGB2GRAY  + Median Blur');
 subplot(2,3,3),imshow(Iequalized),title('Equalized');
 %KMeansLocator( Icanny2 );
 
