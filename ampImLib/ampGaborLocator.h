@@ -1,11 +1,19 @@
 #ifndef __AMP_GABOR_LOCATOR__H__
 #define __AMP_GABOR_LOCATOR__H__
 
+/**
+@Author: Arvind de Menezes Pereira
+
+**/
+
 // std C++
 #include <cassert>
 #include <vector>
 #include <cmath>
 #include <string>
+
+// REMOVE THIS AFTER DEBUG!
+#include <iostream>
 
 // OpenCV
 #include <opencv2/core/core.hpp>
@@ -23,20 +31,26 @@
 
 // Helper
 #include "OpenCVBitmapSource.h"
+#include "ampImageEnhancer.h"
 
 // Namespaces and other stuff...
 using namespace zxing;
 using namespace zxing::oned;
 using namespace cv;
 using std::vector;
+using std::cout;
+using std::endl;
 
 // A few pound - defines
 #define ANG_RES 2                     // 2 degree resolution
 #define ANGLES_TO_CACHE 180/ANG_RES
 #define RAD2DEG M_PI/180.0
 #define DEG2RAD 180.0/M_PI
+#define MAX_IM_PYR 4
 
-class AmpGaborLocator
+
+
+class AmpGaborLocator 
 {
 // Common to all classes
 	vector<cv::Mat> gabKernel; // Should be static, but link is failing!
@@ -45,24 +59,30 @@ class AmpGaborLocator
 	MultiFormatOneDReader *decoderZxing_;
     DecodeHints *decoderZxingHints_;
 
+	// Image Enhancement
+	AmpImageEnhancer aiEnh;
+
 private:
 	cv::Mat bestResponse;
 	vector< Mat > imgPyr;
-	unsigned maxPyramidLevel;
 
 public:
-	AmpGaborLocator() {
-		if( gabKernel.size() == 0 ) {
-			InitGaborKernel( 15, 6.0, 6.0, 0 );
-		}
+	AmpGaborLocator() : 
+		gabKernel( ANGLES_TO_CACHE + 1 ), imgPyr( MAX_IM_PYR + 1 ) 
+	{
+		InitGaborKernel( 15, 6.0, 6.0, 0 );
+		InitDecoder();
+		cout<<"Image Pyramid size: "<<imgPyr.size()<< endl;
 	}
 
-	AmpGaborLocator( int ksize, double sigma, double lambda, double psi ) {
+	AmpGaborLocator( int ksize, double sigma, double lambda, double psi ) :
+		gabKernel( ANGLES_TO_CACHE + 1 ), imgPyr( MAX_IM_PYR + 1 )
+	{
 		// Initialize the Gabor Kernel cache if this is the first class 
 		// to ever use one.
-		if( gabKernel.size()==0 ) {
-			InitGaborKernel( ksize, sigma, lambda, psi );
-		}
+		InitGaborKernel( ksize, sigma, lambda, psi );
+		InitDecoder();
+		cout<<"Image Pyramid size: "<<imgPyr.size()<< endl;
 	}
 
 	~AmpGaborLocator() {}
@@ -89,17 +109,17 @@ public:
 
 	// int ksize=10, double sigma=3.373, double lambda=0.5, double psi=0 ( Originally )
 	void InitGaborKernel( int ksize=15, double sigma=6, double lambda=6, double psi=0 ) {
-		gabKernel.clear();
-		int ktype = CV_32F;
+		int ktype = CV_64F;
 		Size kSize = Size(ksize, ksize);
 
 		for( int i=0; i<= ANGLES_TO_CACHE; i++ ) {
-			gabKernel.push_back( cv::getGaborKernel( kSize, sigma, getAngleFromIndex( i ), lambda, psi, ktype ) );
+			Mat gabKern = cv::getGaborKernel( kSize, sigma, getAngleFromIndex( i ), lambda, psi, ktype );
+			gabKernel[i] = gabKern;
 		}
 	}
 
 	// ------------- Filter2D (simple) ----------------------
-	void filter2D( cv::Mat &src, cv::Mat &dst, cv::Mat kernel ) {
+	void filter2D( cv::Mat &src, cv::Mat &dst, cv::Mat &kernel ) {
 		int ddepth = -1;
 		int delta  = 0;
 		int borderType = BORDER_DEFAULT;
@@ -110,14 +130,14 @@ public:
 
 	// ------------- Operate upon the image -----------------
 	cv::Mat applyGaborAtTheta( double theta, cv::Mat &img ) {
-		cv::Mat out;
-		this->filter2D( img, out, getGaborKernel( theta ) );
+		cv::Mat out, kern;
+		kern = getGaborKernel( theta );
+		this->filter2D( img, out, kern );
 		return out;
 	}
 
-	void CreateImagePyramid( cv::Mat &img, unsigned _maxPyramidLevel ) {
-		buildPyramid( img, imgPyr, maxPyramidLevel );
-		maxPyramidLevel = _maxPyramidLevel;
+	void createImagePyramid( cv::Mat &img, unsigned _maxPyramidLevel ) {
+		buildPyramid( img, imgPyr, _maxPyramidLevel );
 	}
 
 	// From http://stackoverflow.com/questions/2289690/opencv-how-to-rotate-iplimage
@@ -137,10 +157,11 @@ public:
 		double maxSum = 0;
 		int maxInd = 0;
 		// Get an image pyramid.
-		CreateImagePyramid( img, 5 );
+		createImagePyramid( img, MAX_IM_PYR );
 
 		int subSamp = 3;
-
+		cout<<"Image Pyramid size: "<<imgPyr.size()<< endl;
+			
 		for ( int i=0; i<ANGLES_TO_CACHE; i++ ) {
 			cv::Mat out;
 			this->filter2D( imgPyr[ subSamp ], out, gabKernel[ i ] );
@@ -149,13 +170,21 @@ public:
 				maxSum = gabSum[0];
 				maxInd = i;
 			}
-		}
-
+		} 
+		
 		// Get the best response using the true image
 		this->filter2D( img, bestResponse, gabKernel[ maxInd ]);
-
+		
 		// Get the angle from the max index
 		return getAngleFromIndex( maxInd );
+	}
+
+	// ------------ Debug output an image ---------------------------
+	void outputImage( cv::Mat &img ) {
+		const char *debugWindow = "Debug";
+		namedWindow( debugWindow, WINDOW_AUTOSIZE );
+		imshow( debugWindow, img );
+		waitKey( 0 );
 	}
 
 	// ------------ Find the most likely location of the bars --------
@@ -163,11 +192,12 @@ public:
 	bool findBarCodeLocation( cv::Mat &img, vector<cv::Rect> &boundRect ) {
 		// Assumes we have already performed a findRotationAngleFor1D_BarCode
 		// and rotated the image with the best Gabor response
-		
+			
 		cv::Mat imgLoG;
 		// First find a LoG of this response.
 		Laplacian( img, imgLoG, -1, 1, 0.5, 0, BORDER_DEFAULT ); // ddepth=-1, ksize=1, scale=0.5, delta=0 
-
+		outputImage( imgLoG );
+		
 		// Second Dilate the LoG output.
 		cv::Mat imgDil, element;
 		cv::Point anchor( -1, -1 );
@@ -175,6 +205,8 @@ public:
 		int borderType = BORDER_CONSTANT;
 		Scalar borderValue = morphologyDefaultBorderValue();
 		dilate( imgLoG, imgDil, element, anchor, iterations, borderType, borderValue);	
+		
+		outputImage( imgDil );
 
 		// Third Find Rectangles in the output.
 		cv::Mat threshold_output;
@@ -194,32 +226,43 @@ public:
 
 		if( contours.size() ) return true;
 		else return false;
-
+		
 		// Result of the rectangles found is in the vector<Rect> passed to this function.
+		return false;
 	}
 
 	// Run the detection pipeline
 	bool tryToDetect( cv::Mat &img, vector<string> &result ) {
+		// First try to enhance the image by sharpening it and equalizing the histogram
+		Mat imgHistEq;
+		cv::equalizeHist( img, imgHistEq ); 
+		Mat img2 = aiEnh.SuperSharpen( imgHistEq, 5 );	
+		outputImage( img2 );
+
 		// Take this image, find the rotation angle and compute the best Gabor response
-		double likelyAngle =  findRotationAngleFor1D_BarCodesInImage( img );
+		double likelyAngle =  findRotationAngleFor1D_BarCodesInImage( img ) * RAD2DEG;
 
 		// Rotate the image to that angle and find barcode locations in cv::Rect vector
-		cv::Mat rotImg = rotateImage( img, likelyAngle ); 
+		cv::Mat rotImg;
+		rotImg = rotateImage( bestResponse, likelyAngle ); 
+
+		outputImage( rotImg );
 		vector< cv::Rect > boundRects;
 		if( findBarCodeLocation( rotImg, boundRects ) ) {
-			/*
 			// For each cv::Rect a) Enhance local image, b) call the ZXing decoder
 			for ( int i=0; i<boundRects.size(); i++ ) {
 				// Create a small image from the part of the image denoted by the rectangle
 				cv::Mat outMat( rotImg, boundRects[i] );
 				// If successful, return true. If none of the localized barcodes appear to make sense, return false
-        		Ref<OpenCVBitmapSource> source(new OpenCVBitmapSource(outMat));
-        		Ref<Binarizer> binarizer(new HybridBinarizer(source));
-        		Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
-        		Ref<Result> zxingResult(decoderZxing_->decode(bitmap, *decoderZxingHints_));
-        		result.push_back( zxingResult->getText()->getText() );
-				return true;
-			}*/
+				try {
+        		 Ref<OpenCVBitmapSource> source(new OpenCVBitmapSource(outMat));
+        		 Ref<Binarizer> binarizer(new HybridBinarizer(source));
+        		 Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
+        		 Ref<Result> zxingResult(decoderZxing_->decode(bitmap, *decoderZxingHints_));
+        		 result.push_back( zxingResult->getText()->getText() );
+				}
+				catch(ReaderException e) { }
+			}
 		}
 		return false;
 	}

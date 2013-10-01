@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "ampGaborLocator.h"
+#include "ampImageEnhancer.h"
 
 // OpenCV helpers
 #include "opencv2/highgui/highgui.hpp"
