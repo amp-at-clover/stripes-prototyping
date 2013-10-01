@@ -1,17 +1,36 @@
 #ifndef __AMP_GABOR_LOCATOR__H__
 #define __AMP_GABOR_LOCATOR__H__
 
+// std C++
 #include <cassert>
 #include <vector>
 #include <cmath>
+#include <string>
+
+// OpenCV
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+// ZXing
+#include <zxing/DecodeHints.h>
+#include <zxing/oned/MultiFormatOneDReader.h>
+#include <zxing/common/GreyscaleLuminanceSource.h>
+#include <zxing/common/HybridBinarizer.h>
+#include <zxing/BinaryBitmap.h>
+#include <zxing/ReaderException.h>
+#include <zxing/DecodeHints.h>
+
+// Helper
+#include "OpenCVBitmapSource.h"
+
+// Namespaces and other stuff...
+using namespace zxing;
+using namespace zxing::oned;
 using namespace cv;
 using std::vector;
 
-// A few definitions
+// A few pound - defines
 #define ANG_RES 2                     // 2 degree resolution
 #define ANGLES_TO_CACHE 180/ANG_RES
 #define RAD2DEG M_PI/180.0
@@ -20,7 +39,12 @@ using std::vector;
 class AmpGaborLocator
 {
 // Common to all classes
-	static vector< Mat > gabKernel( ANGLES_TO_CACHE );
+	vector<cv::Mat> gabKernel; // Should be static, but link is failing!
+
+	// Barcode decoder: Zebra-Crossing
+	MultiFormatOneDReader *decoderZxing_;
+    DecodeHints *decoderZxingHints_;
+
 private:
 	cv::Mat bestResponse;
 	vector< Mat > imgPyr;
@@ -28,23 +52,29 @@ private:
 
 public:
 	AmpGaborLocator() {
-		InitGaborKernel();
-		AmpGaborLocator::isInitialized = true;
+		if( gabKernel.size() == 0 ) {
+			InitGaborKernel( 15, 6.0, 6.0, 0 );
+		}
 	}
 
 	AmpGaborLocator( int ksize, double sigma, double lambda, double psi ) {
 		// Initialize the Gabor Kernel cache if this is the first class 
 		// to ever use one.
-		if( AmpGaborLocator::gabKernel.size()==0 ) {
-			InitGaborKernel( int ksize, double sigma, double lambda, double psi );
+		if( gabKernel.size()==0 ) {
+			InitGaborKernel( ksize, sigma, lambda, psi );
 		}
 	}
 
 	~AmpGaborLocator() {}
 
+	// ------------- Initialize ZXing decoder ----------------------------
+	void InitDecoder() {
+    	decoderZxingHints_ = new DecodeHints(DecodeHints::ONED_HINT);
+    	decoderZxingHints_->setTryHarder(true);
+    	decoderZxing_ = new MultiFormatOneDReader(*decoderZxingHints_);
+	}
 
-	// ------------- Kernel caching methods ---------------
-
+	// ------------- Kernel caching methods ------------------------------
 	int getKernIndexForTheta( double theta ) {
 		return 	floor(theta * RAD2DEG + 0.5)/ANG_RES;
 	}
@@ -54,29 +84,35 @@ public:
 	}
 
 	cv::Mat getGaborKernel( double theta ) {
-		return AmpGaborLocator::gabKernel[ getKernIndexForTheta ];
+		return gabKernel[ getKernIndexForTheta(theta) ];
 	}
 
-	// cv.getGaborKernel( 'KSize',15,'Sigma',6, ... %3.3730, ...
-    // 'Theta', theta, 'Lambda',6, 'Psi', 0, 'Gamma', 0.5 );
-	// ksize = 15, sigma = 6,
-	// int ksize=10, double sigma=3.373, double lambda=0.5, double psi=0 // Originally.
-	//
-	void InitGaborKernel( int ksize=15, double sigma=6, double lambda=6, double psi=0 )
-	{
+	// int ksize=10, double sigma=3.373, double lambda=0.5, double psi=0 ( Originally )
+	void InitGaborKernel( int ksize=15, double sigma=6, double lambda=6, double psi=0 ) {
+		gabKernel.clear();
 		int ktype = CV_32F;
 		Size kSize = Size(ksize, ksize);
 
-		assert( theta>=0 && theta<=M_PI );
-
 		for( int i=0; i<= ANGLES_TO_CACHE; i++ ) {
-			gabKernel[ i ] = getGaborKernel( kSize, sigma, getAngleFromIndex( i ), lambda, psi, ktype );
+			gabKernel.push_back( cv::getGaborKernel( kSize, sigma, getAngleFromIndex( i ), lambda, psi, ktype ) );
 		}
+	}
+
+	// ------------- Filter2D (simple) ----------------------
+	void filter2D( cv::Mat &src, cv::Mat &dst, cv::Mat kernel ) {
+		int ddepth = -1;
+		int delta  = 0;
+		int borderType = BORDER_DEFAULT;
+		Point anchor( -1, -1 );
+
+		cv::filter2D( src, dst, ddepth, kernel, anchor, delta, borderType );
 	}
 
 	// ------------- Operate upon the image -----------------
 	cv::Mat applyGaborAtTheta( double theta, cv::Mat &img ) {
-		return cv.filter2D( img, getGaborKernel( theta ) );
+		cv::Mat out;
+		this->filter2D( img, out, getGaborKernel( theta ) );
+		return out;
 	}
 
 	void CreateImagePyramid( cv::Mat &img, unsigned _maxPyramidLevel ) {
@@ -90,14 +126,15 @@ public:
 		Point2f src_center(src.cols/2.0F, src.rows/2.0F);
 		Mat rot_mat = getRotationMatrix2D(src_center, angle, 1.0);
 		Mat dst;
-		warpAffine(source, dst, rot_mat, source.size());
+		warpAffine(src, dst, rot_mat, src.size());
 		return dst;
 	}
+
 
 	// ------------- Get Gabor Responses --------------------
 	// Original algorithm developed by Arvind.
 	double findRotationAngleFor1D_BarCodesInImage( cv::Mat &img  ) {
-		long maxSum = 0;
+		double maxSum = 0;
 		int maxInd = 0;
 		// Get an image pyramid.
 		CreateImagePyramid( img, 5 );
@@ -105,16 +142,17 @@ public:
 		int subSamp = 3;
 
 		for ( int i=0; i<ANGLES_TO_CACHE; i++ ) {
-			long gabSum = sum( filter2D( imgPyr[ subSamp ], gabKernel[ i ]));
-			if ( gabSum > maxSum ) {
-				maxSum = gabSum;
+			cv::Mat out;
+			this->filter2D( imgPyr[ subSamp ], out, gabKernel[ i ] );
+			cv::Scalar gabSum = sum( out );
+			if ( gabSum[0] > maxSum ) {
+				maxSum = gabSum[0];
 				maxInd = i;
 			}
 		}
 
 		// Get the best response using the true image
-		int ddepth = -1, delta = 0, borderType = BORDER_DEFAULT;
-		filter2D( img, bestResponse, gabKernel[ maxInd ]);
+		this->filter2D( img, bestResponse, gabKernel[ maxInd ]);
 
 		// Get the angle from the max index
 		return getAngleFromIndex( maxInd );
@@ -161,18 +199,30 @@ public:
 	}
 
 	// Run the detection pipeline
-	bool tryToDetect( cv::Mat &img ) {
+	bool tryToDetect( cv::Mat &img, vector<string> &result ) {
 		// Take this image, find the rotation angle and compute the best Gabor response
+		double likelyAngle =  findRotationAngleFor1D_BarCodesInImage( img );
 
 		// Rotate the image to that angle and find barcode locations in cv::Rect vector
-
-		// For each cv::Rect a) Enhance local image, b) call the ZXing decoder
-
-		// If successful, return true. If none of the localized barcodes appear to make sense, return false
-
+		cv::Mat rotImg = rotateImage( img, likelyAngle ); 
+		vector< cv::Rect > boundRects;
+		if( findBarCodeLocation( rotImg, boundRects ) ) {
+			/*
+			// For each cv::Rect a) Enhance local image, b) call the ZXing decoder
+			for ( int i=0; i<boundRects.size(); i++ ) {
+				// Create a small image from the part of the image denoted by the rectangle
+				cv::Mat outMat( rotImg, boundRects[i] );
+				// If successful, return true. If none of the localized barcodes appear to make sense, return false
+        		Ref<OpenCVBitmapSource> source(new OpenCVBitmapSource(outMat));
+        		Ref<Binarizer> binarizer(new HybridBinarizer(source));
+        		Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
+        		Ref<Result> zxingResult(decoderZxing_->decode(bitmap, *decoderZxingHints_));
+        		result.push_back( zxingResult->getText()->getText() );
+				return true;
+			}*/
+		}
+		return false;
 	}
-
 };
-
 
 #endif
