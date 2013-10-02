@@ -5,6 +5,6 @@ rects = [];
         approxCurv = cv.approxPolyDP( contours{i}, 'Epsilon',3,'Closed',true);
         rct = cv.boundingRect( approxCurv );
         DrawBoundingRect( rct );
-        rects(i) = vertcat( rects, rtc );
+        rects = vertcat( rects, rct );
     end
 end

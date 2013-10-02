@@ -105,3 +105,5 @@ subplot(2,3,4),imshow(Icanny1),title('Canny-NE');
 if useHoughLinesP,  drawLines( lines1 ); end
 subplot(2,3,5),imshow(Icanny2),title('Canny-EQ');
 if useHoughLinesP, drawLines( lines2 ); end
+
+figure; [ ang, imRot ] = NewGaborLocator( Igscale );

@@ -47,7 +47,7 @@ using std::endl;
 #define RAD2DEG M_PI/180.0
 #define DEG2RAD 180.0/M_PI
 #define MAX_IM_PYR 4
-
+#define RND_SEED 54321
 
 
 class AmpGaborLocator 
@@ -62,26 +62,30 @@ class AmpGaborLocator
 	// Image Enhancement
 	AmpImageEnhancer aiEnh;
 
+	// Helper random number generator
+	RNG rng;
+
 private:
 	cv::Mat bestResponse;
 	vector< Mat > imgPyr;
 
 public:
 	AmpGaborLocator() : 
-		gabKernel( ANGLES_TO_CACHE + 1 ), imgPyr( MAX_IM_PYR + 1 ) 
+		gabKernel( ANGLES_TO_CACHE + 1 ), imgPyr( MAX_IM_PYR + 1 ), rng( RND_SEED )
 	{
-		InitGaborKernel( 15, 6.0, 6.0, 0 );
+		InitGaborKernel( 15, 6.0, 6.0, 0.5, 0 );
 		InitDecoder();
 		cout<<"Image Pyramid size: "<<imgPyr.size()<< endl;
 	}
 
-	AmpGaborLocator( int ksize, double sigma, double lambda, double psi ) :
-		gabKernel( ANGLES_TO_CACHE + 1 ), imgPyr( MAX_IM_PYR + 1 )
+	AmpGaborLocator( int ksize, double sigma, double lambd, double gamma, double psi ) :
+		gabKernel( ANGLES_TO_CACHE + 1 ), imgPyr( MAX_IM_PYR + 1 ), rng( RND_SEED )
 	{
 		// Initialize the Gabor Kernel cache if this is the first class 
 		// to ever use one.
-		InitGaborKernel( ksize, sigma, lambda, psi );
+		InitGaborKernel( ksize, sigma, lambd, gamma, psi );
 		InitDecoder();
+		rng( 54321 );
 		cout<<"Image Pyramid size: "<<imgPyr.size()<< endl;
 	}
 
@@ -108,12 +112,12 @@ public:
 	}
 
 	// int ksize=10, double sigma=3.373, double lambda=0.5, double psi=0 ( Originally )
-	void InitGaborKernel( int ksize=15, double sigma=6, double lambda=6, double psi=0 ) {
-		int ktype = CV_64F;
+	void InitGaborKernel( int ksize=15, double sigma=6, double lambda=6, double gamma=0.5, double psi=0 ) {
+		int ktype = CV_32F;
 		Size kSize = Size(ksize, ksize);
 
 		for( int i=0; i<= ANGLES_TO_CACHE; i++ ) {
-			Mat gabKern = cv::getGaborKernel( kSize, sigma, getAngleFromIndex( i ), lambda, psi, ktype );
+			Mat gabKern = cv::getGaborKernel( kSize, sigma, getAngleFromIndex( i ), lambda, gamma, psi, ktype );
 			gabKernel[i] = gabKern;
 		}
 	}
@@ -160,12 +164,12 @@ public:
 		createImagePyramid( img, MAX_IM_PYR );
 
 		int subSamp = 3;
-		cout<<"Image Pyramid size: "<<imgPyr.size()<< endl;
-			
 		for ( int i=0; i<ANGLES_TO_CACHE; i++ ) {
 			cv::Mat out;
 			this->filter2D( imgPyr[ subSamp ], out, gabKernel[ i ] );
+			normalize( out, out, 100, 0, NORM_INF, -1 );
 			cv::Scalar gabSum = sum( out );
+			cout<<endl<<i<<") gabSum ="<<gabSum[0]<<","<<gabSum[1]<<","<<gabSum[2]<<","<<gabSum[3]<<", maxSum="<<maxSum<<" maxInd="<<maxInd;
 			if ( gabSum[0] > maxSum ) {
 				maxSum = gabSum[0];
 				maxInd = i;
@@ -174,17 +178,28 @@ public:
 		
 		// Get the best response using the true image
 		this->filter2D( img, bestResponse, gabKernel[ maxInd ]);
+		// Normalize it...
+		normalize( bestResponse, bestResponse, 200, 0, NORM_INF, -1 ); 
 		
 		// Get the angle from the max index
 		return getAngleFromIndex( maxInd );
 	}
 
 	// ------------ Debug output an image ---------------------------
-	void outputImage( cv::Mat &img ) {
-		const char *debugWindow = "Debug";
-		namedWindow( debugWindow, WINDOW_AUTOSIZE );
-		imshow( debugWindow, img );
+	void outputImage( cv::Mat &img, char *wndName ) {
+		namedWindow( wndName, WINDOW_AUTOSIZE );
+		imshow( wndName, img );
 		waitKey( 0 );
+	}
+
+	// ------------- Display Localized barcodes ---------------------
+	void displayRectangles( cv::Mat &img, vector< cv::Rect > rects ) {
+		cv::Mat RectDisp = cv::Mat::zeros( img.size(), CV_8UC3 );
+		for( int i=0; i< rects.size(); i++ ) {
+			Scalar color = Scalar( rng.uniform(0,255), rng.uniform(0,255), rng.uniform(0,255) );
+		 	rectangle( RectDisp, rects[i].tl(), rects[i].br(), color, 2, 8, 0 );
+		}
+		outputImage( RectDisp, "Localized Barcode locations" );
 	}
 
 	// ------------ Find the most likely location of the bars --------
@@ -196,7 +211,7 @@ public:
 		cv::Mat imgLoG;
 		// First find a LoG of this response.
 		Laplacian( img, imgLoG, -1, 1, 0.5, 0, BORDER_DEFAULT ); // ddepth=-1, ksize=1, scale=0.5, delta=0 
-		outputImage( imgLoG );
+		outputImage( imgLoG, "LaplacianOfGaussian" );
 		
 		// Second Dilate the LoG output.
 		cv::Mat imgDil, element;
@@ -206,7 +221,7 @@ public:
 		Scalar borderValue = morphologyDefaultBorderValue();
 		dilate( imgLoG, imgDil, element, anchor, iterations, borderType, borderValue);	
 		
-		outputImage( imgDil );
+		outputImage( imgDil, "DilatedImage" );
 
 		// Third Find Rectangles in the output.
 		cv::Mat threshold_output;
@@ -232,23 +247,28 @@ public:
 	}
 
 	// Run the detection pipeline
-	bool tryToDetect( cv::Mat &img, vector<string> &result ) {
+	bool tryToDetect( cv::Mat &img, vector<string> &result, double ang ) {
 		// First try to enhance the image by sharpening it and equalizing the histogram
-		Mat imgHistEq;
-		cv::equalizeHist( img, imgHistEq ); 
-		Mat img2 = aiEnh.SuperSharpen( imgHistEq, 5 );	
-		outputImage( img2 );
+		//Mat imgHistEq;
+		//cv::equalizeHist( img, imgHistEq ); 
+		Mat img2 = aiEnh.SuperSharpen( img, 4 );	
+		outputImage( img2, "Sharpened Image" );
 
 		// Take this image, find the rotation angle and compute the best Gabor response
-		double likelyAngle =  findRotationAngleFor1D_BarCodesInImage( img ) * RAD2DEG;
+		double likelyAngle =  findRotationAngleFor1D_BarCodesInImage( img2 ) * RAD2DEG;
+		cout<<endl<<"Rotating by : "<<likelyAngle<<" deg."<<endl;
 
 		// Rotate the image to that angle and find barcode locations in cv::Rect vector
 		cv::Mat rotImg;
+		//rotImg = rotateImage( bestResponse, likelyAngle ); 
 		rotImg = rotateImage( bestResponse, likelyAngle ); 
 
-		outputImage( rotImg );
+		outputImage( rotImg, "Rotated Best Response" );
 		vector< cv::Rect > boundRects;
 		if( findBarCodeLocation( rotImg, boundRects ) ) {
+			// For debugging - output the rectangles
+			displayRectangles( img, boundRects );
+
 			// For each cv::Rect a) Enhance local image, b) call the ZXing decoder
 			for ( int i=0; i<boundRects.size(); i++ ) {
 				// Create a small image from the part of the image denoted by the rectangle

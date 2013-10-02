@@ -26,6 +26,8 @@ int main( int argc, char *argv[] ) {
 	Mat src = imread( argv[ 1 ], 1 );
 	Mat src_gray;
 
+	double ang = 0;
+
 	cvtColor( src, src_gray, COLOR_BGR2GRAY );	
 
 	const char *source_window = "Source";
@@ -34,7 +36,7 @@ int main( int argc, char *argv[] ) {
 
 	// Get the results here
 	vector< string > resultSet;
-	if( agl.tryToDetect( src_gray, resultSet ) ) {
+	if( agl.tryToDetect( src_gray, resultSet, ang ) ) {
 		cout<<"Found some barcodes"<<endl;
 	}
 	else cout<<"Didn't find anything."<<endl;
