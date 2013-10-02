@@ -165,9 +165,10 @@ public:
 
 		int subSamp = 3;
 		for ( int i=0; i<ANGLES_TO_CACHE; i++ ) {
-			cv::Mat out;
+			cv::Mat out(img.size(), CV_32F);
+			
 			this->filter2D( imgPyr[ subSamp ], out, gabKernel[ i ] );
-			normalize( out, out, 100, 0, NORM_INF, -1 );
+			//normalize( out, out, 100, 0, NORM_INF, -1 );
 			cv::Scalar gabSum = sum( out );
 			cout<<endl<<i<<") gabSum ="<<gabSum[0]<<","<<gabSum[1]<<","<<gabSum[2]<<","<<gabSum[3]<<", maxSum="<<maxSum<<" maxInd="<<maxInd;
 			if ( gabSum[0] > maxSum ) {
@@ -251,7 +252,7 @@ public:
 		// First try to enhance the image by sharpening it and equalizing the histogram
 		//Mat imgHistEq;
 		//cv::equalizeHist( img, imgHistEq ); 
-		Mat img2 = aiEnh.SuperSharpen( img, 4 );	
+		Mat img2 = aiEnh.SuperSharpen( img, 10 );	
 		outputImage( img2, "Sharpened Image" );
 
 		// Take this image, find the rotation angle and compute the best Gabor response
