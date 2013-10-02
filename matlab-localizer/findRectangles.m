@@ -1,5 +1,6 @@
 function rects = findRectangles( Img )
 rects = [];
+    Img = uint8( Img );
     contours = cv.findContours( Img, 'Mode', 'CComp' );
     for i=1:length(contours)
         approxCurv = cv.approxPolyDP( contours{i}, 'Epsilon',3,'Closed',true);

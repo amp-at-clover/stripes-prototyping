@@ -16,7 +16,7 @@ void printUsage( int argc, char *argv[] ) {
 
 
 int main( int argc, char *argv[] ) {
-	std::cout<<"This is a test for Arvind's Gabor-based Barcode localizer"<<std::endl;
+	//std::cout<<"This is a test for Arvind's Gabor-based Barcode localizer"<<std::endl;
 	if(	argc == 1 || argc > 2 ) {
 		printUsage( argc, argv );
 		exit( EXIT_FAILURE );
@@ -30,18 +30,18 @@ int main( int argc, char *argv[] ) {
 
 	cvtColor( src, src_gray, COLOR_BGR2GRAY );	
 
-	const char *source_window = "Source";
-	namedWindow( source_window, WINDOW_AUTOSIZE );
-	imshow( source_window, src_gray );
-
 	// Get the results here
 	vector< string > resultSet;
-	if( agl.tryToDetect( src_gray, resultSet, ang ) ) {
-		cout<<"Found some barcodes"<<endl;
+	agl.tryToDetect( src_gray, resultSet, ang );
+	if( resultSet.size() ) {
+		cout<<"Found some barcodes:"<<endl;
+		for( int i=0; i < resultSet.size(); i++ ) {
+			cout<<resultSet[i]<<endl;
+		}
 	}
-	else cout<<"Didn't find anything."<<endl;
+	else cout<<"None"<<endl;
 
-	waitKey( 0 );
+	agl.outputImage( src, "Source Image" );
 
 	return 0;
 }
