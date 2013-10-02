@@ -37,11 +37,15 @@ int main( int argc, char *argv[] ) {
 		cout<<"Found some barcodes:"<<endl;
 		for( int i=0; i < resultSet.size(); i++ ) {
 			cout<<resultSet[i]<<endl;
+			char *wndName="Window";
+			namedWindow( wndName, WINDOW_AUTOSIZE );
+			imshow( wndName, src_gray );
+			waitKey( 0 );
 		}
 	}
 	else cout<<"None"<<endl;
 
-	agl.outputImage( src, "Source Image" );
+	//agl.outputImage( src, "Source Image" );
 
 	return 0;
 }

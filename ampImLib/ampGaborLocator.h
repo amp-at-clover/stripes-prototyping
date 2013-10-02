@@ -47,7 +47,7 @@ using std::endl;
 using std::ostringstream;
 
 // A few pound - defines
-#define ANG_RES 2                     // 2 degree resolution
+#define ANG_RES 2                     // degree resolution
 #define ANGLES_TO_CACHE 180/ANG_RES
 #define RAD2DEG M_PI/180.0
 #define DEG2RAD 180.0/M_PI
