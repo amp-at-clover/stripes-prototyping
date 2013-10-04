@@ -30,6 +30,12 @@ cv::Mat AmpImageEnhancer::SuperFilter( cv::Mat &imgToFilter )
     return out;
 }
 
+
+void AmpImageEnhancer::UnsharpMaskFilter( cv::Mat &src, cv::Mat &dst ) {
+    GaussianBlur(src, dst, Size(5,5), 5);
+    addWeighted(src, 1.5, dst, -0.5, 0, src);
+}
+
 cv::Mat AmpImageEnhancer::SuperSharpen( cv::Mat &imgToSharpen , double scale = 6 )
 {
     // Parameter tuning

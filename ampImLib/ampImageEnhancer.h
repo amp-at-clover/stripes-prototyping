@@ -16,6 +16,7 @@ public:
     ~AmpImageEnhancer();
     cv::Mat SuperSharpen( cv::Mat &imgToSharpen, double );
     cv::Mat SuperFilter ( cv::Mat &imgToFilter );
+    void UnsharpMaskFilter( cv::Mat &src, cv::Mat &dst );
 };
 
 #endif // __AMP_IMAGE_ENHANCER_H__

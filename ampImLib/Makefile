@@ -23,10 +23,15 @@ EXE1_HDRS = ampGaborLocator.h ampImageEnhancer.h OpenCVBitmapSource.h
 EXE1_OBJS = $(EXE1_SRCS:.cpp=.o)
 
 
+EXE2_SRCS = ampFastLocator.cpp ampImageEnhancer.cpp
+EXE2_HDRS = ampFastLocator.h ampImageEnhancer.h OpenCVBitmapSource.h
+EXE2_OBJS = $(EXE2_SRCS:.cpp=.o)
+
 # Definition of source and header files for second program
 
 # List of executables to be compiled
 EXE1 = gabLocalize
+EXE2 = fastLocalize
 
 # Make executables
 all: $(EXE1) $(EXE2)
@@ -37,7 +42,7 @@ all: $(EXE1) $(EXE2)
 $(EXE1): $(EXE1_OBJS) $(EXE1_HDRS)
 	$(CC) -o $(EXE1) $(EXE1_OBJS) $(LFLAGS) $(LIBS)    
 
-$(EXE2): $(EXE2_SRCS) $(EXE2_HDRS)
+$(EXE2): $(EXE2_OBJS) $(EXE2_HDRS)
 	$(CC) -o $(EXE2) $(EXE2_OBJS) $(LFLAGS) $(LIBS)    
 
 .cpp.o: $(SOURCES) $(HEADERS)
