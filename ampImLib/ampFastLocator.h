@@ -179,13 +179,17 @@ public:
 											-1, 0, 1 );
 
 		const double sobThresh = 30.0;
-		for ( int i=0; i<ANGLES_TO_CACHE; i++ ) {
+		this->filter2D( imgPyr[subSamp], out, SobMask );
+		this->binarizeImage( out, out, sobThresh, 255, THRESH_TRUNC );
+		cv::Scalar sobSum = sum( out );
+		maxSum = sobSum[0];
+		for ( int i=1; i<ANGLES_TO_CACHE; i++ ) {
 			cv::Mat rotatedImg;
 			rotateImage( imgPyr[subSamp], rotatedImg, i * ANG_RES );
 			this->filter2D( rotatedImg, out, SobMask );
 			this->binarizeImage( out, out, sobThresh, 255, THRESH_TRUNC );
 			//normalize( out, out, 100, 0, NORM_INF, -1 );
-			cv::Scalar sobSum = sum( out );
+			sobSum = sum( out );
 #ifdef __CPP_DEBUG__
 			cout<<endl<<i<<") sobSum ="<<sobSum[0]<<", maxSum="<<maxSum<<" maxInd="<<maxInd;
 #endif
