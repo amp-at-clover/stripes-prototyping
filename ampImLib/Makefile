@@ -19,8 +19,9 @@ CFLAGS = -Wall -c
 
 # Definition of source and header files for first program
 EXE1_SRCS = ampGaborLocator.cpp ampImageEnhancer.cpp
-EXE1_HDRS = ampGaborLocator.h ampImageEnhancer.h
+EXE1_HDRS = ampGaborLocator.h ampImageEnhancer.h OpenCVBitmapSource.h
 EXE1_OBJS = $(EXE1_SRCS:.cpp=.o)
+
 
 # Definition of source and header files for second program
 
@@ -33,14 +34,16 @@ all: $(EXE1) $(EXE2)
 #	if command -v doxygen; then make docs; \
 #	fi
 
-$(EXE1):	$(EXE1_OBJS) $(EXE1_HDRS)
+$(EXE1): $(EXE1_OBJS) $(EXE1_HDRS)
 	$(CC) -o $(EXE1) $(EXE1_OBJS) $(LFLAGS) $(LIBS)    
 
-$(EXE2): $(EXE2_OBJS) $(EXE2_HDRS)
+$(EXE2): $(EXE2_SRCS) $(EXE2_HDRS)
 	$(CC) -o $(EXE2) $(EXE2_OBJS) $(LFLAGS) $(LIBS)    
 
-.cpp.o:
+.cpp.o: $(SOURCES) $(HEADERS)
 	$(CC) $(CFLAGS) $(INCLUDES) $< -o $@
+
+#$(EXE1_OBJS): $(EXE1_SRCS) $(EXE1_HDRS)
 
 # Make a tar file for archiving the code
 tar:

@@ -2,7 +2,8 @@
 #define __AMP_GABOR_LOCATOR__H__
 
 /**
-@Author: Arvind de Menezes Pereira
+@Author : Arvind de Menezes Pereira
+@Summary: Barcode location (and detection through Zxing).
 **/
 
 //#define __CPP_DEBUG__
@@ -280,7 +281,7 @@ public:
 		// First try to enhance the image by sharpening it and equalizing the histogram
 		cv::Mat origImg = img.clone();
 		//cv::equalizeHist( img, img );
-		Mat img2 = aiEnh.SuperSharpen( img, 5 );
+		Mat img2 = aiEnh.SuperSharpen( img, 8 );
 		outputImage( img2, "Sharpened Image" );
 
 		// Take this image, find the rotation angle and compute the best Gabor response
@@ -309,16 +310,16 @@ public:
 				// Create a small image from the part of the image denoted by the rectangle
 				cv::Mat outMat( rotatedEnhImg, boundRects[i] );
 				cv::equalizeHist( outMat, outMat );
-				//outMat = aiEnh.SuperSharpen( outMat, 2 );
-
+				//int enhLevel = 1;
+				//outMat = aiEnh.SuperSharpen( outMat, enhLevel );
 				dispEnhancedMiniImage(outMat,i);
 				// If successful, return true. If none of the localized barcodes appear to make sense, return false
 				try {
-        		 Ref<OpenCVBitmapSource> source(new OpenCVBitmapSource(outMat));
-        		 Ref<Binarizer> binarizer(new HybridBinarizer(source));
-        		 Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
-        		 Ref<Result> zxingResult(decoderZxing_->decode(bitmap, *decoderZxingHints_));
-        		 result.push_back( zxingResult->getText()->getText() );
+				 Ref<OpenCVBitmapSource> source(new OpenCVBitmapSource(outMat));
+				 Ref<Binarizer> binarizer(new HybridBinarizer(source));
+				 Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
+				 Ref<Result> zxingResult(decoderZxing_->decode(bitmap, *decoderZxingHints_));
+				 result.push_back( zxingResult->getText()->getText() );
 				}
 				catch(ReaderException e) { }
 			}

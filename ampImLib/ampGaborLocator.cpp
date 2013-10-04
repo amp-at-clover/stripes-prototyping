@@ -39,7 +39,7 @@ int main( int argc, char *argv[] ) {
 			cout<<resultSet[i]<<endl;
 			char *wndName="Window";
 			namedWindow( wndName, WINDOW_AUTOSIZE );
-			imshow( wndName, src_gray );
+			imshow( wndName, src );
 			waitKey( 0 );
 		}
 	}
