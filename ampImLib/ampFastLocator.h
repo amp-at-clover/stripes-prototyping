@@ -27,7 +27,9 @@
 
 // ZXing
 #include <zxing/DecodeHints.h>
+#include <zxing/MultiFormatReader.h>
 #include <zxing/oned/MultiFormatOneDReader.h>
+#include <zxing/qrcode/QRcodeReader.h>
 #include <zxing/common/GreyscaleLuminanceSource.h>
 #include <zxing/common/HybridBinarizer.h>
 #include <zxing/BinaryBitmap.h>
@@ -40,7 +42,9 @@
 
 // Namespaces and other stuff...
 using namespace zxing;
-using namespace zxing::oned;
+//using namespace zxing::oned;
+using zxing::MultiFormatReader;
+using namespace zxing::qrcode;
 using namespace cv;
 using std::vector;
 using std::cout;
@@ -62,7 +66,9 @@ class AmpFastLocator
 	vector<cv::Mat> gabKernel; // Should be static, but link is failing!
 
 	// Barcode decoder: Zebra-Crossing
-	MultiFormatOneDReader *decoderZxing_;
+	//MultiFormatOneDReader *decoderZxing_;
+	MultiFormatReader *decoderZxing_;
+	//QRCodeReader *decoderZxing_;
     DecodeHints *decoderZxingHints_;
 
 	// Image Enhancement
@@ -100,9 +106,13 @@ public:
 
 	// ------------- Initialize ZXing decoder ----------------------------
 	void InitDecoder() {
-    	decoderZxingHints_ = new DecodeHints(DecodeHints::ONED_HINT);
+    	decoderZxingHints_ = new DecodeHints(DecodeHints::ONED_HINT | DecodeHints::QR_CODE_HINT );
+    	//decoderZxingHints_ = new DecodeHints( BarcodeFormat::QR_CODE );
     	decoderZxingHints_->setTryHarder(true);
-    	decoderZxing_ = new MultiFormatOneDReader(*decoderZxingHints_);
+    	//decoderZxing_ = new MultiFormatOneDReader(*decoderZxingHints_);
+    	decoderZxing_ = new MultiFormatReader();
+		//decoderZxing_ = new QRCodeReader();	
+		decoderZxing_->setHints( *decoderZxingHints_ );
 	}
 
 	// ------------- Kernel caching methods ------------------------------

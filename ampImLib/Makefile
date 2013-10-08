@@ -8,8 +8,8 @@ LIBS = -L/usr/lib/ -L/usr/local/lib/ -lm -pthread -lpthread $(OPENCV_LIBS) $(ZXI
 OPENCV_LIBS = $(shell pkg-config --libs opencv)
 OPENCV_INCS = $(shell pkg-config --cflags opencv)
 
-ZXING_LIBS = -L/usr/local/lib/ -lzxing
-ZXING_INCS = -I../zxing-2.2/cpp/core/src/ 
+ZXING_LIBS = -L/usr/local/lib/ -lzxing -liconv
+ZXING_INCS = -I../zxing-2.2/cpp/core/src/
 
 # Compiler to be used
 CC = g++
