@@ -66,10 +66,11 @@ class AmpFastLocator
 	vector<cv::Mat> gabKernel; // Should be static, but link is failing!
 
 	// Barcode decoder: Zebra-Crossing
-	//MultiFormatOneDReader *decoderZxing_;
-	MultiFormatReader *decoderZxing_;
-	//QRCodeReader *decoderZxing_;
+	MultiFormatOneDReader *decoderZxing_;
+	//MultiFormatReader *decoderZxing_;
+	QRCodeReader *decoder_QR_Zxing_;
     DecodeHints *decoderZxingHints_;
+    DecodeHints *qrDecoderZxingHints_;
 
 	// Image Enhancement
 	AmpImageEnhancer aiEnh;
@@ -106,13 +107,15 @@ public:
 
 	// ------------- Initialize ZXing decoder ----------------------------
 	void InitDecoder() {
-    	decoderZxingHints_ = new DecodeHints(DecodeHints::ONED_HINT | DecodeHints::QR_CODE_HINT );
-    	//decoderZxingHints_ = new DecodeHints( BarcodeFormat::QR_CODE );
+    	//decoderZxingHints_ = new DecodeHints(DecodeHints::ONED_HINT | DecodeHints::QR_CODE_HINT );
+    	decoderZxingHints_ = new DecodeHints( DecodeHints::ONED_HINT );
+		qrDecoderZxingHints_ = new DecodeHints( DecodeHints::QR_CODE_HINT );
     	decoderZxingHints_->setTryHarder(true);
-    	//decoderZxing_ = new MultiFormatOneDReader(*decoderZxingHints_);
-    	decoderZxing_ = new MultiFormatReader();
-		//decoderZxing_ = new QRCodeReader();	
-		decoderZxing_->setHints( *decoderZxingHints_ );
+    	decoderZxing_ = new MultiFormatOneDReader(*decoderZxingHints_);
+    	decoderZxingHints_->setTryHarder(true);
+    	//decoderZxing_ = new MultiFormatReader();
+		//decoderZxing_->setHints( *decoderZxingHints_ );
+		decoder_QR_Zxing_ = new QRCodeReader();	
 	}
 
 	// ------------- Kernel caching methods ------------------------------
@@ -305,13 +308,35 @@ public:
 		}
 	}
 
+
+	void onedZxingDetect( cv::Mat &img, vector<string> &result ) {
+            try {
+				 Ref<OpenCVBitmapSource> source(new OpenCVBitmapSource(img));
+				 Ref<Binarizer> binarizer(new HybridBinarizer(source));
+				 Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
+				 Ref<Result> zxingResult(decoderZxing_->decode(bitmap, *decoderZxingHints_));
+				 result.push_back( zxingResult->getText()->getText() );
+			}
+			catch(ReaderException e) { }
+	}
+
+
+	void qrZxingDetect( cv::Mat &img, vector<string> &result ) {
+		//QRCodeReader *decoderQR_Zxing_;
+            try {
+				 Ref<OpenCVBitmapSource> source(new OpenCVBitmapSource(img));
+				 Ref<Binarizer> binarizer(new HybridBinarizer(source));
+				 Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
+				 Ref<Result> zxingResult(decoder_QR_Zxing_->decode(bitmap, *qrDecoderZxingHints_));
+				 result.push_back( zxingResult->getText()->getText() );
+			}
+			catch(ReaderException e) { }
+	}
+
 	// Run the detection pipeline
 	bool tryToDetect( cv::Mat &img, vector<string> &result ) {
 		// First try to enhance the image by sharpening it and equalizing the histogram
 		cv::Mat origImg = img.clone();
-		//cv::equalizeHist( img, img );
-		//img = aiEnh.SuperSharpen( img, 10 );
-		//outputImage( img2, "Sharpened Image" );
 
 		// Take this image, find the rotation angle and compute the best Gabor response
 		double likelyAngle =  findRotationAngleFor1D_BarCodesInImage( img );
@@ -322,8 +347,6 @@ public:
 		// Rotate the image to that angle and find barcode locations in cv::Rect vector
 		cv::Mat rotImg;
 		rotateImage( img, rotImg, likelyAngle );
-		//rotateImage( bestResponse, rotImg, likelyAngle );
-
 		outputImage( bestResponse, "Rotated Best Response" );
 		vector< cv::Rect > boundRects, filteredRects;
 
@@ -331,9 +354,7 @@ public:
 		rotateImage( origImg, rotatedEnhImg, likelyAngle);
 
 		if( findBarCodeLocation( rotImg, boundRects ) ) {
-
 			filterRectanglesBySize( boundRects, filteredRects, 20, 20 ); // ignore rects smaller than 15 x 15 px
-
 			#ifdef __CPP_DEBUG__
 				// For debugging - output the rectangles
 				displayRectangles( rotatedEnhImg, filteredRects );
@@ -342,23 +363,22 @@ public:
 			for ( int i=0; i< filteredRects.size(); i++ ) {
 				// Create a small image from the part of the image denoted by the rectangle
 				cv::Mat outMat( rotatedEnhImg, filteredRects[i] );
-				//cv::equalizeHist( outMat, outMat );
-				//aiEnh.UnsharpMaskFilter( outMat, outMat );
-				//int enhLevel = 1;
-				//outMat = aiEnh.SuperSharpen( outMat, enhLevel );
 				cv::equalizeHist( outMat, outMat );
 				dispEnhancedMiniImage(outMat,i);
 				// If successful, return true. If none of the localized barcodes appear to make sense, return false
-				try {
-				 Ref<OpenCVBitmapSource> source(new OpenCVBitmapSource(outMat));
-				 Ref<Binarizer> binarizer(new HybridBinarizer(source));
-				 Ref<BinaryBitmap> bitmap(new BinaryBitmap(binarizer));
-				 Ref<Result> zxingResult(decoderZxing_->decode(bitmap, *decoderZxingHints_));
-				 result.push_back( zxingResult->getText()->getText() );
-				}
-				catch(ReaderException e) { }
+				onedZxingDetect( outMat, result );
+
+				// Check for qr-codes???
+				//qrZxingDetect( outMat, result );
 			}
 		}
+		if( result.size()==0 ) {
+			// Maybe a QR-code, look at the whole image.
+  			qrZxingDetect( origImg, result );
+		}
+
+		if( result.size() ) return true;
+
 		return false;
 	}
 };
