@@ -7,35 +7,19 @@
 #include <cstdio>
 
 #define MAX_GPIO_STR_LEN 60
+#define GPIOPIN 156
 
 using CloverTools::TimeTools;
 
 class CloverLedController
 {
     private:
-        bool ledOnState;
-        int percentOn;
-        int cyclePeriod_ms;
         TimeTools ourTimer;
         char ledPIN[ MAX_GPIO_STR_LEN ];
+        FILE *fLED;
 
         void setPinStr( int gpioPin ) {
             sprintf( ledPIN, "/sys/class/gpio/gpio%d/value", gpioPin );
-        }
-
-        FILE *fLED;
-
-    public:
-        CloverLedController() {
-            percentOn = 100;
-            cyclePeriod_ms = 1000L;
-            ledOnState = false;
-            int GPIOPIN  = 156;
-            setPinStr( GPIOPIN );
-            fLED = NULL;
-        }
-
-        ~CloverLedController() {
         }
 
 
@@ -59,7 +43,17 @@ class CloverLedController
                 }
         }
 
-        void run4aSecond( int cyclePeriod_ms, int dutyCycle  )
+    public:
+        CloverLedController() {
+            setPinStr( GPIOPIN );
+            fLED = NULL;
+        }
+
+        ~CloverLedController() {
+        }
+
+
+        void run4someSeconds( int cyclePeriod_ms, float dutyCycle , float secondsToRunFor )
         {
            	fLED = fopen( "/sys/class/gpio/gpio156/value", "w" );
             ourTimer.resetTimer();
@@ -70,7 +64,7 @@ class CloverLedController
             float onTime = (dutyCycle/100.0 * cyclePeriod_ms);
             float offTime = (cyclePeriod_ms - onTime);
 			printf("OnTime=%f, OffTime=%f\n",onTime, offTime);
-            while( ourTimer.timeSinceStart() <= 1.0  ) {
+            while( ourTimer.timeSinceStart() <= secondsToRunFor  ) {
                     turnOnLED( onTime );
                     turnOffLED( offTime );
             }
